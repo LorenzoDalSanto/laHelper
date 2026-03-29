@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Erasmus LA Helper</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<style>
+  /* ── Reset & tokens ──────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --navy:   #0f2849;
+    --blue:   #1d4ed8;
+    --sky:    #3b82f6;
+    --aqua:   #0ea5e9;
+    --gold:   #f59e0b;
+    --cream:  #fef9f0;
+    --white:  #ffffff;
+    --slate:  #475569;
+    --muted:  #94a3b8;
+    --border: #e2e8f0;
+    --light:  #f8fafc;
+    --green:  #16a34a;
+    --red:    #dc2626;
+    --radius: 12px;
+    --shadow: 0 4px 24px rgba(15,40,73,.08);
+    --shadow-lg: 0 12px 48px rgba(15,40,73,.14);
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  body {
+    background: var(--cream);
+    color: var(--navy);
+    min-height: 100vh;
+  }
+
+  /* ── Header ──────────────────────────────────────────────────── */
+  header {
+    background: var(--navy);
+    color: var(--white);
+    padding: 0 2rem;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    height: 64px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 16px rgba(0,0,0,.2);
+  }
+  header .logo {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.4rem;
+    letter-spacing: -.01em;
+    color: var(--white);
+  }
+  header .logo span { color: var(--gold); }
+  header .tagline {
+    font-size: .78rem;
+    color: var(--muted);
+    font-weight: 300;
+    border-left: 1px solid rgba(255,255,255,.2);
+    padding-left: 1rem;
+    margin-left: .5rem;
+  }
+  header .header-right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+  }
+  #api-status-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--muted);
+    transition: background .3s;
+  }
+  #api-status-dot.ok  { background: #22c55e; box-shadow: 0 0 8px #22c55e88; }
+  #api-status-dot.err { background: var(--red); }
+  #api-status-text { font-size: .75rem; color: var(--muted); }
+
+  /* ── Layout ──────────────────────────────────────────────────── */
+  .app-layout {
+    display: flex;
+    min-height: calc(100vh - 64px);
+  }
+
+  /* ── Sidebar / stepper ───────────────────────────────────────── */
+  .sidebar {
+    width: 220px;
+    flex-shrink: 0;
+    background: var(--navy);
+    padding: 2rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: .25rem;
+  }
+  .step-btn {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    padding: .65rem .9rem;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: rgba(255,255,255,.5);
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    font-size: .82rem;
+    font-weight: 500;
+    text-align: left;
+    transition: all .2s;
+    width: 100%;
+  }
+  .step-btn .num {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    border: 1.5px solid currentColor;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .7rem;
+    flex-shrink: 0;
+  }
+  .step-btn:hover { color: rgba(255,255,255,.85); background: rgba(255,255,255,.06); }
+  .step-btn.active {
+    color: var(--white);
+    background: rgba(255,255,255,.12);
+  }
+  .step-btn.active .num {
+    background: var(--gold);
+    border-color: var(--gold);
+    color: var(--navy);
+  }
+  .step-btn.done { color: rgba(255,255,255,.7); }
+  .step-btn.done .num {
+    background: #22c55e;
+    border-color: #22c55e;
+    color: #fff;
+  }
+
+  /* ── Main content ────────────────────────────────────────────── */
+  main {
+    flex: 1;
+    padding: 2rem;
+    max-width: 960px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  .panel { display: none; }
+  .panel.active { display: block; animation: fadeIn .25s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  /* ── Cards ───────────────────────────────────────────────────── */
+  .card {
+    background: var(--white);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    padding: 1.5rem;
+    box-shadow: var(--shadow);
+    margin-bottom: 1.25rem;
+  }
+  .card-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.15rem;
+    margin-bottom: 1rem;
+    color: var(--navy);
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+  }
+  .card-title .icon { font-size: 1.1rem; }
+
+  /* ── Page titles ─────────────────────────────────────────────── */
+  .page-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.8rem;
+    color: var(--navy);
+    margin-bottom: .35rem;
+  }
+  .page-sub {
+    color: var(--slate);
+    font-size: .9rem;
+    margin-bottom: 1.75rem;
+    font-weight: 300;
+  }
+
+  /* ── Forms ───────────────────────────────────────────────────── */
+  label { font-size: .82rem; font-weight: 600; color: var(--navy); display: block; margin-bottom: .35rem; }
+  input[type=text], input[type=password], input[type=url], select {
+    width: 100%;
+    padding: .6rem .85rem;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: .88rem;
+    color: var(--navy);
+    background: var(--white);
+    outline: none;
+    transition: border-color .2s;
+    margin-bottom: .85rem;
+  }
+  input:focus, select:focus { border-color: var(--sky); }
+  .input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .input-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+
+  /* ── Buttons ─────────────────────────────────────────────────── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+    padding: .6rem 1.2rem;
+    border-radius: 8px;
+    border: none;
+    font-family: inherit;
+    font-size: .85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .18s;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .btn-primary {
+    background: var(--blue);
+    color: var(--white);
+  }
+  .btn-primary:hover { background: #1e40af; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(29,78,216,.3); }
+  .btn-secondary {
+    background: transparent;
+    color: var(--blue);
+    border: 1.5px solid var(--blue);
+  }
+  .btn-secondary:hover { background: #eff6ff; }
+  .btn-ghost {
+    background: transparent;
+    color: var(--slate);
+    border: 1.5px solid var(--border);
+  }
+  .btn-ghost:hover { background: var(--light); }
+  .btn-danger {
+    background: #fef2f2;
+    color: var(--red);
+    border: 1.5px solid #fecaca;
+  }
+  .btn-danger:hover { background: #fee2e2; }
+  .btn-gold {
+    background: var(--gold);
+    color: var(--navy);
+  }
+  .btn-gold:hover { background: #d97706; transform: translateY(-1px); }
+  .btn-sm { padding: .35rem .75rem; font-size: .78rem; }
+  .btn:disabled { opacity: .5; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+
+  /* ── University Cards ────────────────────────────────────────── */
+  .uni-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+  @media (max-width: 700px) { .uni-grid { grid-template-columns: 1fr; } }
+
+  .uni-card {
+    background: var(--white);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    box-shadow: var(--shadow);
+    transition: box-shadow .2s;
+    position: relative;
+  }
+  .uni-card:hover { box-shadow: var(--shadow-lg); }
+  .uni-card.home-card { border-top: 3px solid var(--blue); }
+  .uni-card.abroad-card { border-top: 3px solid var(--gold); }
+
+  .uni-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: .75rem;
+  }
+  .uni-name {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.05rem;
+    color: var(--navy);
+    margin-bottom: .2rem;
+  }
+  .uni-badge {
+    font-size: .7rem;
+    padding: .2rem .55rem;
+    border-radius: 99px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .badge-home   { background: #dbeafe; color: var(--blue); }
+  .badge-abroad { background: #fef3c7; color: #92400e; }
+  .badge-analyzed { background: #dcfce7; color: var(--green); }
+
+  .uni-stats {
+    display: flex;
+    gap: .75rem;
+    margin-bottom: .75rem;
+  }
+  .stat { font-size: .78rem; color: var(--slate); }
+  .stat strong { color: var(--navy); }
+
+  /* ── Source list ─────────────────────────────────────────────── */
+  .source-list { list-style: none; margin-bottom: .75rem; }
+  .source-item {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    padding: .35rem .5rem;
+    border-radius: 6px;
+    font-size: .78rem;
+    color: var(--slate);
+    background: var(--light);
+    margin-bottom: .3rem;
+  }
+  .source-item .src-icon { font-size: .9rem; flex-shrink: 0; }
+  .source-item .src-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .source-item .btn-remove { flex-shrink: 0; }
+
+  /* ── Source adder ────────────────────────────────────────────── */
+  .source-adder {
+    border: 1.5px dashed var(--border);
+    border-radius: 8px;
+    padding: .85rem;
+    background: var(--light);
+  }
+  .source-tabs { display: flex; gap: .5rem; margin-bottom: .75rem; }
+  .tab-btn {
+    font-size: .75rem;
+    font-weight: 600;
+    padding: .3rem .65rem;
+    border-radius: 6px;
+    border: 1.5px solid var(--border);
+    background: var(--white);
+    color: var(--slate);
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .tab-btn.active { border-color: var(--blue); color: var(--blue); background: #eff6ff; }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  .file-drop-zone {
+    border: 1.5px dashed var(--sky);
+    border-radius: 8px;
+    padding: 1rem;
+    text-align: center;
+    cursor: pointer;
+    transition: background .15s;
+    color: var(--slate);
+    font-size: .82rem;
+  }
+  .file-drop-zone:hover { background: #f0f9ff; }
+  .file-drop-zone input[type=file] { display: none; }
+
+  /* ── Courses table ───────────────────────────────────────────── */
+  .courses-wrap { overflow-x: auto; border-radius: 8px; border: 1px solid var(--border); }
+  table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+  thead th {
+    background: var(--navy);
+    color: var(--white);
+    padding: .6rem .85rem;
+    text-align: left;
+    font-weight: 600;
+    font-size: .78rem;
+    white-space: nowrap;
+  }
+  tbody tr:nth-child(even) { background: var(--light); }
+  tbody td { padding: .55rem .85rem; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.4; }
+  tbody tr:hover { background: #f0f9ff; }
+  .badge-credit { background: #dbeafe; color: var(--blue); font-size: .72rem; font-weight: 700; padding: .15rem .45rem; border-radius: 99px; white-space: nowrap; }
+
+  /* ── Match results ───────────────────────────────────────────── */
+  .match-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.1rem 1.25rem;
+    margin-bottom: .85rem;
+    box-shadow: var(--shadow);
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 1rem;
+    align-items: start;
+  }
+  .match-side { display: flex; flex-direction: column; gap: .25rem; }
+  .match-course-name { font-weight: 600; font-size: .92rem; color: var(--navy); line-height: 1.3; }
+  .match-meta { font-size: .75rem; color: var(--slate); display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; }
+  .match-center { display: flex; flex-direction: column; align-items: center; gap: .3rem; padding-top: .15rem; }
+  .sim-circle {
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .85rem;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .sim-high   { background: #dcfce7; color: var(--green); border: 2px solid #86efac; }
+  .sim-mid    { background: #fef9c3; color: #854d0e; border: 2px solid #fde047; }
+  .sim-low    { background: #fee2e2; color: var(--red); border: 2px solid #fca5a5; }
+  .match-arrow { font-size: 1.1rem; color: var(--muted); }
+  .match-reason { font-size: .78rem; color: var(--slate); font-style: italic; grid-column: 1 / -1; border-top: 1px solid var(--border); padding-top: .65rem; margin-top: .25rem; line-height: 1.45; }
+
+  /* ── Alerts ──────────────────────────────────────────────────── */
+  .alert {
+    border-radius: 8px;
+    padding: .8rem 1rem;
+    font-size: .85rem;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: flex-start;
+    gap: .65rem;
+    line-height: 1.5;
+  }
+  .alert-info { background: #eff6ff; color: var(--blue); border: 1px solid #bfdbfe; }
+  .alert-warn { background: #fefce8; color: #854d0e; border: 1px solid #fde68a; }
+  .alert-err  { background: #fef2f2; color: var(--red); border: 1px solid #fecaca; }
+  .alert-ok   { background: #f0fdf4; color: var(--green); border: 1px solid #bbf7d0; }
+
+  /* ── Loading spinner ─────────────────────────────────────────── */
+  .spinner {
+    display: inline-block;
+    width: 18px; height: 18px;
+    border: 2.5px solid rgba(255,255,255,.3);
+    border-top-color: var(--white);
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+    flex-shrink: 0;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinner-dark { border-color: rgba(15,40,73,.15); border-top-color: var(--navy); }
+
+  /* ── Step nav ────────────────────────────────────────────────── */
+  .step-nav { display: flex; gap: .75rem; margin-top: 1.5rem; justify-content: flex-end; }
+
+  /* ── Divider ─────────────────────────────────────────────────── */
+  hr { border: none; border-top: 1px solid var(--border); margin: 1.25rem 0; }
+
+  /* ── Empty state ─────────────────────────────────────────────── */
+  .empty {
+    text-align: center;
+    padding: 3rem 1.5rem;
+    color: var(--muted);
+  }
+  .empty .empty-icon { font-size: 2.5rem; margin-bottom: .75rem; }
+  .empty p { font-size: .9rem; }
+
+  /* ── Toast ───────────────────────────────────────────────────── */
+  #toast {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    background: var(--navy);
+    color: var(--white);
+    padding: .75rem 1.25rem;
+    border-radius: 10px;
+    font-size: .85rem;
+    box-shadow: var(--shadow-lg);
+    z-index: 999;
+    opacity: 0;
+    transform: translateY(12px);
+    transition: all .3s;
+    max-width: 320px;
+  }
+  #toast.show { opacity: 1; transform: translateY(0); }
+
+  /* ── Add uni placeholder ─────────────────────────────────────── */
+  .add-uni-btn {
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 2rem;
+    text-align: center;
+    cursor: pointer;
+    color: var(--muted);
+    font-size: .88rem;
+    transition: all .2s;
+    background: transparent;
+    width: 100%;
+  }
+  .add-uni-btn:hover { border-color: var(--sky); color: var(--sky); background: #f0f9ff; }
+
+  /* ── Modal ───────────────────────────────────────────────────── */
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(15,40,73,.55);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--white);
+    border-radius: 16px;
+    padding: 2rem;
+    max-width: 480px;
+    width: 90%;
+    box-shadow: var(--shadow-lg);
+    animation: fadeIn .2s ease;
+  }
+  .modal-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.25rem;
+    margin-bottom: 1rem;
+    color: var(--navy);
+  }
+  .modal-footer { display: flex; gap: .75rem; justify-content: flex-end; margin-top: 1rem; }
+
+  /* ── Pill select ─────────────────────────────────────────────── */
+  .pill-select { display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: .85rem; }
+  .pill { padding: .35rem .85rem; border-radius: 99px; border: 1.5px solid var(--border); font-size: .78rem; font-weight: 600; cursor: pointer; color: var(--slate); transition: all .15s; background: var(--white); }
+  .pill.selected { border-color: var(--blue); color: var(--blue); background: #eff6ff; }
+
+  /* ── Match pair selector ─────────────────────────────────────── */
+  .pair-row {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: .75rem;
+    align-items: center;
+    margin-bottom: .75rem;
+  }
+  .pair-select { margin-bottom: 0; }
+
+  /* ── Progress bar ────────────────────────────────────────────── */
+  .progress-bar-wrap {
+    background: var(--border);
+    border-radius: 99px;
+    height: 6px;
+    overflow: hidden;
+    margin-top: .4rem;
+  }
+  .progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--blue), var(--aqua));
+    border-radius: 99px;
+    transition: width .4s ease;
+  }
+</style>
+</head>
+<body>
+
+<!-- ── Header ──────────────────────────────────────────────────────────── -->
+<header>
+  <div class="logo">Erasmus <span>LA</span> Helper</div>
+  <div class="tagline">Learning Agreement Assistant per studenti Erasmus</div>
+  <div class="header-right">
+    <div id="api-status-dot"></div>
+    <span id="api-status-text">Config non verificata</span>
+  </div>
+</header>
+
+<div class="app-layout">
+
+  <!-- ── Sidebar ─────────────────────────────────────────────────────── -->
+  <nav class="sidebar">
+    <button class="step-btn active" data-step="0" onclick="goStep(0)">
+      <span class="num">1</span> Configurazione
+    </button>
+    <button class="step-btn" data-step="1" onclick="goStep(1)">
+      <span class="num">2</span> Università
+    </button>
+    <button class="step-btn" data-step="2" onclick="goStep(2)">
+      <span class="num">3</span> Analisi Corsi
+    </button>
+    <button class="step-btn" data-step="3" onclick="goStep(3)">
+      <span class="num">4</span> Match LA
+    </button>
+  </nav>
+
+  <!-- ── Main ────────────────────────────────────────────────────────── -->
+  <main>
+
+    <!-- ===== STEP 0: CONFIG ===== -->
+    <div class="panel active" id="panel-0">
+      <h1 class="page-title">⚙️ Configurazione</h1>
+      <p class="page-sub">Inserisci la tua API key e scegli il provider AI da usare per l'analisi dei corsi.</p>
+
+      <div class="card">
+        <div class="card-title"><span class="icon">🔑</span> API Key</div>
+        <label>Provider AI</label>
+        <div class="pill-select" id="provider-pills">
+          <button class="pill selected" data-val="openai" onclick="selectProvider('openai')">OpenAI</button>
+          <button class="pill" data-val="anthropic" onclick="selectProvider('anthropic')">Anthropic</button>
+          <button class="pill" data-val="google" onclick="selectProvider('google')">Google Gemini</button>
+        </div>
+        <label>API Key</label>
+        <input type="password" id="cfg-apikey" placeholder="sk-... oppure la tua chiave" />
+        <label>Modello</label>
+        <input type="text" id="cfg-model" value="gpt-4o" placeholder="es. gpt-4o, claude-sonnet-4-6, gemini-1.5-pro" />
+        <label>Soglia similarità match (%)</label>
+        <input type="text" id="cfg-threshold" value="60" placeholder="0-100" />
+        <div class="alert alert-info">
+          💡 La tua API key non viene salvata sul server e rimane nel browser per tutta la sessione.
+          Puoi anche impostarla in <code>config.py</code> per averla già pronta all'avvio.
+        </div>
+        <button class="btn btn-primary" onclick="saveConfig()">✅ Salva e verifica</button>
+      </div>
+
+      <div class="step-nav">
+        <button class="btn btn-primary" onclick="goStep(1)">Avanti: Università →</button>
+      </div>
+    </div>
+
+    <!-- ===== STEP 1: UNIVERSITÀ ===== -->
+    <div class="panel" id="panel-1">
+      <h1 class="page-title">🏛️ Gestione Università</h1>
+      <p class="page-sub">Aggiungi la tua università di casa e quelle estere che ti interessano. Per ogni ateneo inserisci i link ai cataloghi corsi o carica i PDF.</p>
+
+      <div id="uni-grid" class="uni-grid">
+        <!-- Cards generate dinamicamente -->
+      </div>
+      <button class="add-uni-btn" onclick="openAddUniModal()">
+        ＋ Aggiungi università
+      </button>
+
+      <div class="step-nav">
+        <button class="btn btn-ghost" onclick="goStep(0)">← Indietro</button>
+        <button class="btn btn-primary" onclick="goStep(2)">Avanti: Analisi corsi →</button>
+      </div>
+    </div>
+
+    <!-- ===== STEP 2: ANALISI ===== -->
+    <div class="panel" id="panel-2">
+      <h1 class="page-title">🔍 Analisi Corsi</h1>
+      <p class="page-sub">Avvia l'analisi AI per estrarre i cataloghi corsi. Ogni università verrà analizzata separatamente.</p>
+
+      <div id="analyze-list">
+        <!-- Cards per ogni università -->
+      </div>
+
+      <div class="step-nav">
+        <button class="btn btn-ghost" onclick="goStep(1)">← Indietro</button>
+        <button class="btn btn-primary" onclick="goStep(3)">Avanti: Confronto LA →</button>
+      </div>
+    </div>
+
+    <!-- ===== STEP 3: MATCH ===== -->
+    <div class="panel" id="panel-3">
+      <h1 class="page-title">🎯 Match Learning Agreement</h1>
+      <p class="page-sub">Seleziona la tua università di casa e una estera: l'AI identificherà i corsi sovrapponibili per il tuo LA.</p>
+
+      <div class="card">
+        <div class="card-title"><span class="icon">🔀</span> Selezione Confronto</div>
+        <div class="pair-row">
+          <div>
+            <label>Università di Casa</label>
+            <select id="match-home" class="pair-select"></select>
+          </div>
+          <div style="font-size:1.4rem;color:var(--muted);padding-top:1.4rem;">⇆</div>
+          <div>
+            <label>Università Estera</label>
+            <select id="match-abroad" class="pair-select"></select>
+          </div>
+        </div>
+        <button class="btn btn-primary" id="btn-match" onclick="runMatch()">
+          🔍 Trova Match
+        </button>
+      </div>
+
+      <div id="match-results"></div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ── Modal Aggiungi Università ─────────────────────────────────────────── -->
+<div class="modal-overlay" id="add-uni-modal">
+  <div class="modal">
+    <div class="modal-title">➕ Aggiungi Università</div>
+    <label>Nome dell'università</label>
+    <input type="text" id="new-uni-name" placeholder="es. Politecnico di Milano" />
+    <label>Tipo</label>
+    <div class="pill-select" id="uni-type-pills">
+      <button class="pill selected" data-val="home" onclick="selectUniType('home')">🏠 Università di Casa</button>
+      <button class="pill" data-val="abroad" onclick="selectUniType('abroad')">✈️ Università Estera</button>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('add-uni-modal')">Annulla</button>
+      <button class="btn btn-primary" onclick="addUniversity()">Aggiungi</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal Aggiungi Fonte ──────────────────────────────────────────────── -->
+<div class="modal-overlay" id="add-source-modal">
+  <div class="modal">
+    <div class="modal-title">📎 Aggiungi Fonte Corsi</div>
+    <input type="hidden" id="src-uni-id" />
+    <div class="source-tabs">
+      <button class="tab-btn active" onclick="switchSrcTab('url')">🔗 URL</button>
+      <button class="tab-btn" onclick="switchSrcTab('file')">📄 PDF / File</button>
+    </div>
+    <div class="tab-content active" id="src-tab-url">
+      <label>Link alla pagina corsi</label>
+      <input type="url" id="src-url-input" placeholder="https://..." />
+    </div>
+    <div class="tab-content" id="src-tab-file">
+      <label>Carica PDF o documento</label>
+      <div class="file-drop-zone" onclick="document.getElementById('src-file-input').click()">
+        <input type="file" id="src-file-input" accept=".pdf,.txt,.md,.csv" onchange="handleFileSelect()" />
+        <div id="file-drop-label">📂 Clicca per selezionare un file (PDF, TXT, MD, CSV)</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('add-source-modal')">Annulla</button>
+      <button class="btn btn-primary" id="btn-add-src" onclick="addSource()">Aggiungi fonte</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Toast ─────────────────────────────────────────────────────────────── -->
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════════════
+const state = {
+  sessionId: null,
+  apiKey: "",
+  provider: "openai",
+  model: "gpt-4o",
+  threshold: 60,
+  universities: {},   // id -> {name, type, sources:[], courses:[], analyzed:bool}
+  currentMatchKey: null,
+  currentMatches: [],
+  currentMatchHome: null,
+  currentMatchAbroad: null,
+  srcTab: "url",
+  newUniType: "home",
+};
+
+const API = "http://localhost:5050/api";
+
+// ═══════════════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════════════
+async function init() {
+  // Crea sessione
+  try {
+    const r = await fetch(`${API}/session/new`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+    const d = await r.json();
+    state.sessionId = d.session_id;
+  } catch(e) {
+    showToast("⚠️ Impossibile connettersi al server. Assicurati che app.py sia in esecuzione.", "err");
+    return;
+  }
+
+  // Carica config dal server
+  try {
+    const r = await fetch(`${API}/config`);
+    const d = await r.json();
+    if (d.has_key) {
+      state.apiKey   = d.api_key; // mascherata, sarà sovrascritta se l'utente inserisce
+      document.getElementById("cfg-apikey").placeholder = "Key caricata da config.py (" + d.api_key + ")";
+    }
+    selectProvider(d.provider || "openai");
+    document.getElementById("cfg-model").value     = d.model     || "gpt-4o";
+    document.getElementById("cfg-threshold").value = d.threshold || "60";
+    state.model     = d.model     || "gpt-4o";
+    state.threshold = d.threshold || 60;
+    state.provider  = d.provider  || "openai";
+    if (d.has_key) updateApiStatus(true);
+  } catch(e) {}
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════════════════════════════
+let currentStep = 0;
+
+function goStep(n) {
+  document.getElementById(`panel-${currentStep}`).classList.remove("active");
+  document.getElementById(`panel-${n}`).classList.add("active");
+  document.querySelectorAll(".step-btn").forEach(b => b.classList.remove("active"));
+  document.querySelector(`[data-step="${n}"]`).classList.add("active");
+  currentStep = n;
+
+  if (n === 1) renderUniGrid();
+  if (n === 2) renderAnalyzeList();
+  if (n === 3) renderMatchStep();
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  CONFIG
+// ═══════════════════════════════════════════════════════════════
+function selectProvider(val) {
+  state.provider = val;
+  document.querySelectorAll("#provider-pills .pill").forEach(p => {
+    p.classList.toggle("selected", p.dataset.val === val);
+  });
+  const modelDefaults = { openai: "gpt-4o", anthropic: "claude-sonnet-4-6", google: "gemini-1.5-pro" };
+  if (!document.getElementById("cfg-model").value || document.getElementById("cfg-model").value === document.getElementById("cfg-model").defaultValue) {
+    document.getElementById("cfg-model").value = modelDefaults[val] || "gpt-4o";
+  }
+}
+
+function saveConfig() {
+  const keyInput = document.getElementById("cfg-apikey").value.trim();
+  if (keyInput) state.apiKey = keyInput;
+  state.model     = document.getElementById("cfg-model").value.trim() || "gpt-4o";
+  state.threshold = parseInt(document.getElementById("cfg-threshold").value) || 60;
+  const hasKey = !!state.apiKey;
+  updateApiStatus(hasKey);
+  showToast(hasKey ? "✅ Configurazione salvata" : "⚠️ Nessuna API key inserita", hasKey ? "ok" : "warn");
+}
+
+function updateApiStatus(ok) {
+  const dot  = document.getElementById("api-status-dot");
+  const text = document.getElementById("api-status-text");
+  dot.className  = ok ? "ok" : "err";
+  text.textContent = ok ? `${state.provider} · ${state.model}` : "API key mancante";
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  UNIVERSITIES
+// ═══════════════════════════════════════════════════════════════
+function selectUniType(val) {
+  state.newUniType = val;
+  document.querySelectorAll("#uni-type-pills .pill").forEach(p => {
+    p.classList.toggle("selected", p.dataset.val === val);
+  });
+}
+
+function openAddUniModal() {
+  document.getElementById("new-uni-name").value = "";
+  selectUniType("home");
+  document.getElementById("add-uni-modal").classList.add("open");
+  setTimeout(() => document.getElementById("new-uni-name").focus(), 100);
+}
+
+async function addUniversity() {
+  const name = document.getElementById("new-uni-name").value.trim();
+  if (!name) { showToast("Inserisci il nome dell'università", "warn"); return; }
+
+  const r = await fetchAPI("/university/add", { session_id: state.sessionId, name });
+  if (r.error) { showToast(r.error, "err"); return; }
+
+  state.universities[r.university_id] = {
+    id: r.university_id, name, type: state.newUniType,
+    sources: [], courses: [], analyzed: false,
+  };
+  closeModal("add-uni-modal");
+  renderUniGrid();
+  showToast(`✅ ${name} aggiunta`, "ok");
+}
+
+function renderUniGrid() {
+  const grid = document.getElementById("uni-grid");
+  const unis = Object.values(state.universities);
+  if (!unis.length) { grid.innerHTML = ""; return; }
+
+  grid.innerHTML = unis.map(u => `
+    <div class="uni-card ${u.type === "home" ? "home-card" : "abroad-card"}">
+      <div class="uni-card-header">
+        <div>
+          <div class="uni-name">${esc(u.name)}</div>
+          <div class="uni-stats">
+            <span class="stat"><strong>${u.sources.length}</strong> fonti</span>
+            <span class="stat"><strong>${u.courses.length}</strong> corsi</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:.4rem;flex-direction:column;align-items:flex-end">
+          <span class="uni-badge ${u.type === "home" ? "badge-home" : "badge-abroad"}">
+            ${u.type === "home" ? "🏠 Casa" : "✈️ Estera"}
+          </span>
+          ${u.analyzed ? '<span class="uni-badge badge-analyzed">✓ Analizzata</span>' : ""}
+        </div>
+      </div>
+
+      <ul class="source-list" id="src-list-${u.id}">
+        ${renderSourceItems(u)}
+      </ul>
+
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+        <button class="btn btn-secondary btn-sm" onclick="openAddSourceModal('${u.id}')">＋ Aggiungi fonte</button>
+        <button class="btn btn-danger btn-sm" onclick="removeUniversity('${u.id}')">✕ Rimuovi</button>
+      </div>
+    </div>
+  `).join("");
+}
+
+function renderSourceItems(u) {
+  if (!u.sources.length) return `<li style="font-size:.78rem;color:var(--muted);padding:.25rem .5rem">Nessuna fonte aggiunta</li>`;
+  return u.sources.map((s, i) => `
+    <li class="source-item">
+      <span class="src-icon">${s.type === "url" ? "🔗" : "📄"}</span>
+      <span class="src-label" title="${esc(s.label)}">${esc(s.label)}</span>
+      <button class="btn btn-danger btn-sm btn-remove" onclick="removeSource('${u.id}', ${i})">✕</button>
+    </li>
+  `).join("");
+}
+
+async function removeUniversity(uid) {
+  await fetchAPI("/university/remove", { session_id: state.sessionId, university_id: uid });
+  delete state.universities[uid];
+  renderUniGrid();
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  SOURCES
+// ═══════════════════════════════════════════════════════════════
+let currentSrcUniId = null;
+let selectedFile    = null;
+
+function openAddSourceModal(uid) {
+  currentSrcUniId = uid;
+  selectedFile    = null;
+  document.getElementById("src-uni-id").value = uid;
+  document.getElementById("src-url-input").value = "";
+  document.getElementById("src-file-input").value = "";
+  document.getElementById("file-drop-label").textContent = "📂 Clicca per selezionare un file (PDF, TXT, MD, CSV)";
+  switchSrcTab("url");
+  document.getElementById("add-source-modal").classList.add("open");
+}
+
+function switchSrcTab(tab) {
+  state.srcTab = tab;
+  document.querySelectorAll(".source-tabs .tab-btn").forEach((b, i) => {
+    b.classList.toggle("active", (i === 0 && tab === "url") || (i === 1 && tab === "file"));
+  });
+  document.getElementById("src-tab-url").classList.toggle("active", tab === "url");
+  document.getElementById("src-tab-file").classList.toggle("active", tab === "file");
+}
+
+function handleFileSelect() {
+  const f = document.getElementById("src-file-input").files[0];
+  if (f) {
+    selectedFile = f;
+    document.getElementById("file-drop-label").textContent = "📄 " + f.name;
+  }
+}
+
+async function addSource() {
+  const uid = currentSrcUniId;
+  if (!uid) return;
+
+  const btn = document.getElementById("btn-add-src");
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Caricamento...';
+
+  try {
+    if (state.srcTab === "url") {
+      const url = document.getElementById("src-url-input").value.trim();
+      if (!url) { showToast("Inserisci un URL", "warn"); return; }
+      const r = await fetchAPI("/source/add_url", { session_id: state.sessionId, university_id: uid, url });
+      if (r.error) { showToast(r.error, "err"); return; }
+      state.universities[uid].sources.push({ type: "url", value: url, label: url });
+
+    } else {
+      if (!selectedFile) { showToast("Seleziona un file", "warn"); return; }
+      const fd = new FormData();
+      fd.append("session_id",   state.sessionId);
+      fd.append("university_id", uid);
+      fd.append("file", selectedFile);
+      const r = await fetch(`${API}/source/upload_file`, { method: "POST", body: fd });
+      const d = await r.json();
+      if (d.error) { showToast(d.error, "err"); return; }
+      state.universities[uid].sources.push({ type: "file", value: d.filename, label: d.filename });
+    }
+
+    closeModal("add-source-modal");
+    renderUniGrid();
+    showToast("✅ Fonte aggiunta", "ok");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Aggiungi fonte";
+  }
+}
+
+async function removeSource(uid, index) {
+  await fetchAPI("/source/remove", { session_id: state.sessionId, university_id: uid, index });
+  state.universities[uid].sources.splice(index, 1);
+  document.getElementById(`src-list-${uid}`).innerHTML = renderSourceItems(state.universities[uid]);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  ANALYZE
+// ═══════════════════════════════════════════════════════════════
+function renderAnalyzeList() {
+  const container = document.getElementById("analyze-list");
+  const unis = Object.values(state.universities);
+
+  if (!unis.length) {
+    container.innerHTML = `<div class="empty"><div class="empty-icon">🏛️</div><p>Nessuna università aggiunta. Torna allo step precedente.</p></div>`;
+    return;
+  }
+
+  container.innerHTML = unis.map(u => `
+    <div class="card" id="analyze-card-${u.id}">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">
+        <div>
+          <div class="card-title" style="margin-bottom:0">
+            <span>${u.type === "home" ? "🏠" : "✈️"}</span> ${esc(u.name)}
+            ${u.analyzed ? '<span class="uni-badge badge-analyzed" style="margin-left:.5rem">✓ Analizzata</span>' : ""}
+          </div>
+          <div style="font-size:.78rem;color:var(--muted);margin-top:.2rem">${u.sources.length} fonti · ${u.courses.length} corsi estratti</div>
+        </div>
+        <div style="display:flex;gap:.5rem">
+          <button class="btn btn-primary btn-sm" id="btn-analyze-${u.id}" onclick="analyzeUniversity('${u.id}')">
+            🔍 Analizza
+          </button>
+          ${u.analyzed ? `<button class="btn btn-ghost btn-sm" onclick="downloadCsv('${u.id}')">⬇️ CSV</button>` : ""}
+        </div>
+      </div>
+
+      <div id="analyze-progress-${u.id}"></div>
+      <div id="analyze-courses-${u.id}">
+        ${u.courses.length ? renderCoursesTable(u.courses) : ""}
+      </div>
+    </div>
+  `).join("");
+}
+
+async function analyzeUniversity(uid) {
+  const u = state.universities[uid];
+  if (!u.sources.length) { showToast("Aggiungi almeno una fonte prima di analizzare", "warn"); return; }
+
+  const btn = document.getElementById(`btn-analyze-${uid}`);
+  const prog = document.getElementById(`analyze-progress-${uid}`);
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Analisi AI in corso...';
+  prog.innerHTML = `
+    <div class="alert alert-info">⏳ L'AI sta analizzando le fonti di <strong>${esc(u.name)}</strong>. Potrebbe richiedere qualche minuto…</div>
+    <div class="progress-bar-wrap"><div class="progress-bar" style="width:30%;animation:none" id="pbar-${uid}"></div></div>
+  `;
+  // Simula avanzamento
+  let pct = 30;
+  const pbar = document.getElementById(`pbar-${uid}`);
+  const pInt = setInterval(() => { pct = Math.min(pct + 5, 90); if(pbar) pbar.style.width = pct + "%"; }, 1200);
+
+  try {
+    const r = await fetchAPI("/analyze", {
+      session_id:    state.sessionId,
+      university_id: uid,
+      api_key:       state.apiKey,
+      provider:      state.provider,
+      model:         state.model,
+    });
+
+    clearInterval(pInt);
+
+    if (r.error) {
+      prog.innerHTML = `<div class="alert alert-err">❌ ${esc(r.error)}</div>`;
+      return;
+    }
+
+    u.courses  = r.courses;
+    u.analyzed = true;
+    if(pbar) pbar.style.width = "100%";
+
+    prog.innerHTML = `<div class="alert alert-ok">✅ Estratti <strong>${r.course_count}</strong> corsi da ${esc(u.name)}</div>`;
+    document.getElementById(`analyze-courses-${uid}`).innerHTML = renderCoursesTable(u.courses);
+
+    // Aggiorna pulsante CSV
+    const card = document.getElementById(`analyze-card-${uid}`);
+    const btnWrap = card.querySelector('[style*="display:flex;gap:.5rem"]');
+    if (!btnWrap.querySelector(".btn-ghost")) {
+      btnWrap.insertAdjacentHTML("beforeend", `<button class="btn btn-ghost btn-sm" onclick="downloadCsv('${uid}')">⬇️ CSV</button>`);
+    }
+
+  } catch(e) {
+    clearInterval(pInt);
+    prog.innerHTML = `<div class="alert alert-err">❌ Errore: ${esc(e.message)}</div>`;
+  } finally {
+    btn.disabled  = false;
+    btn.innerHTML = "🔄 Ri-analizza";
+  }
+}
+
+function renderCoursesTable(courses) {
+  if (!courses.length) return "<p style='color:var(--muted);font-size:.82rem'>Nessun corso trovato.</p>";
+  return `
+    <div class="courses-wrap" style="margin-top:.75rem;max-height:320px;overflow-y:auto">
+      <table>
+        <thead>
+          <tr>
+            <th>Nome Corso</th>
+            <th>Ciclo</th>
+            <th>Lingua</th>
+            <th>Crediti</th>
+            <th>Descrizione</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${courses.map(c => `
+            <tr>
+              <td><strong>${esc(c.nome)}</strong></td>
+              <td>${esc(c.ciclo)}</td>
+              <td>${esc(c.lingua)}</td>
+              <td><span class="badge-credit">${c.crediti} CFU</span></td>
+              <td style="max-width:260px;font-size:.78rem">${esc(c.descrizione)}</td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+async function downloadCsv(uid) {
+  const u = state.universities[uid];
+  const r = await fetch(`${API}/courses/download_csv`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ session_id: state.sessionId, university_id: uid }),
+  });
+  if (!r.ok) { showToast("Errore nel download CSV", "err"); return; }
+  const blob = await r.blob();
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `corsi_${u.name.replace(/\s+/g,"_")}.csv`;
+  a.click();
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  MATCH
+// ═══════════════════════════════════════════════════════════════
+function renderMatchStep() {
+  const unis = Object.values(state.universities);
+  const homeSelect   = document.getElementById("match-home");
+  const abroadSelect = document.getElementById("match-abroad");
+
+  homeSelect.innerHTML   = unis.map(u => `<option value="${u.id}">${esc(u.name)} ${u.analyzed ? "✓" : "⚠ non analizzata"}</option>`).join("") || "<option>Nessuna università</option>";
+  abroadSelect.innerHTML = unis.map(u => `<option value="${u.id}">${esc(u.name)} ${u.analyzed ? "✓" : "⚠ non analizzata"}</option>`).join("") || "<option>Nessuna università</option>";
+
+  // Preseleziona home/abroad
+  const homeUni   = unis.find(u => u.type === "home");
+  const abroadUni = unis.find(u => u.type === "abroad");
+  if (homeUni)   homeSelect.value   = homeUni.id;
+  if (abroadUni) abroadSelect.value = abroadUni.id;
+}
+
+async function runMatch() {
+  const homeId   = document.getElementById("match-home").value;
+  const abroadId = document.getElementById("match-abroad").value;
+  if (!homeId || !abroadId) { showToast("Seleziona entrambe le università", "warn"); return; }
+  if (homeId === abroadId) { showToast("Seleziona due università diverse", "warn"); return; }
+
+  const homeUni   = state.universities[homeId];
+  const abroadUni = state.universities[abroadId];
+  if (!homeUni?.analyzed) { showToast(`Analizza prima i corsi di "${homeUni?.name}"`, "warn"); return; }
+  if (!abroadUni?.analyzed) { showToast(`Analizza prima i corsi di "${abroadUni?.name}"`, "warn"); return; }
+
+  const btn = document.getElementById("btn-match");
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Confronto AI in corso...';
+
+  const results = document.getElementById("match-results");
+  results.innerHTML = `<div class="alert alert-info">⏳ L'AI sta cercando corsi sovrapponibili tra <strong>${esc(homeUni.name)}</strong> e <strong>${esc(abroadUni.name)}</strong>…</div>`;
+
+  try {
+    const r = await fetchAPI("/match", {
+      session_id:  state.sessionId,
+      home_id:     homeId,
+      abroad_id:   abroadId,
+      api_key:     state.apiKey,
+      provider:    state.provider,
+      model:       state.model,
+      threshold:   state.threshold,
+    });
+
+    if (r.error) {
+      results.innerHTML = `<div class="alert alert-err">❌ ${esc(r.error)}</div>`;
+      return;
+    }
+
+    state.currentMatchKey    = r.match_key;
+    state.currentMatches     = r.matches;
+    state.currentMatchHome   = homeUni.name;
+    state.currentMatchAbroad = abroadUni.name;
+
+    if (!r.matches.length) {
+      results.innerHTML = `<div class="alert alert-warn">⚠️ Nessun match trovato con soglia ${state.threshold}%. Prova ad abbassare la soglia in Configurazione.</div>`;
+      return;
+    }
+
+    results.innerHTML = `
+      <div class="alert alert-ok">✅ Trovati <strong>${r.match_count}</strong> corsi sovrapponibili — ordinati per similarità</div>
+      <div style="display:flex;justify-content:flex-end;margin-bottom:1rem">
+        <button class="btn btn-gold" onclick="downloadPdf()">📄 Scarica PDF Learning Agreement</button>
+      </div>
+      <div id="matches-list">
+        ${r.matches.map(renderMatchCard(homeUni.name, abroadUni.name)).join("")}
+      </div>
+    `;
+
+  } catch(e) {
+    results.innerHTML = `<div class="alert alert-err">❌ Errore: ${esc(e.message)}</div>`;
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = "🔍 Trova Match";
+  }
+}
+
+const renderMatchCard = (homeName, abroadName) => (m) => {
+  const sim = m.similarita || 0;
+  const cls = sim >= 80 ? "sim-high" : sim >= 65 ? "sim-mid" : "sim-low";
+  return `
+    <div class="match-card">
+      <div class="match-side">
+        <div style="font-size:.72rem;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.2rem">🏠 ${esc(homeName)}</div>
+        <div class="match-course-name">${esc(m.corso_casa)}</div>
+        <div class="match-meta">
+          <span class="badge-credit">${m.crediti_casa} CFU</span>
+        </div>
+      </div>
+      <div class="match-center">
+        <div class="sim-circle ${cls}">${sim}%</div>
+        <span class="match-arrow">⇆</span>
+      </div>
+      <div class="match-side">
+        <div style="font-size:.72rem;font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.2rem">✈️ ${esc(abroadName)}</div>
+        <div class="match-course-name">${esc(m.corso_estero)}</div>
+        <div class="match-meta">
+          <span class="badge-credit">${m.crediti_estero} CFU</span>
+          <span>${esc(m.lingua_estero)}</span>
+          <span>${esc(m.ciclo_estero)}</span>
+        </div>
+      </div>
+      <div class="match-reason">💬 ${esc(m.motivazione)}</div>
+    </div>
+  `;
+};
+
+async function downloadPdf() {
+  if (!state.currentMatchKey) return;
+  const r = await fetch(`${API}/match/download_pdf`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ session_id: state.sessionId, match_key: state.currentMatchKey }),
+  });
+  if (!r.ok) { showToast("Errore nel download PDF", "err"); return; }
+  const blob = await r.blob();
+  const a    = document.createElement("a");
+  a.href     = URL.createObjectURL(blob);
+  a.download = `Learning_Agreement_${state.currentMatchAbroad?.replace(/\s+/g,"_") || "export"}.pdf`;
+  a.click();
+  showToast("✅ PDF scaricato!", "ok");
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  UTILS
+// ═══════════════════════════════════════════════════════════════
+async function fetchAPI(endpoint, body) {
+  try {
+    const r = await fetch(`${API}${endpoint}`, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify(body),
+    });
+    return await r.json();
+  } catch(e) {
+    return { error: `Errore di rete: ${e.message}` };
+  }
+}
+
+function closeModal(id) { document.getElementById(id).classList.remove("open"); }
+
+function esc(s) {
+  if (s == null) return "";
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+let toastTimer;
+function showToast(msg, type = "ok") {
+  const t = document.getElementById("toast");
+  const colors = { ok: "#16a34a", err: "#dc2626", warn: "#d97706", info: "#1d4ed8" };
+  t.style.background = colors[type] || "#0f2849";
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), 3500);
+}
+
+// Close modals on overlay click
+document.querySelectorAll(".modal-overlay").forEach(o => {
+  o.addEventListener("click", e => { if (e.target === o) o.classList.remove("open"); });
+});
+
+// Enter key in modals
+document.getElementById("new-uni-name").addEventListener("keydown", e => { if (e.key === "Enter") addUniversity(); });
+document.getElementById("src-url-input").addEventListener("keydown", e => { if (e.key === "Enter") addSource(); });
+document.getElementById("cfg-apikey").addEventListener("keydown", e => { if (e.key === "Enter") saveConfig(); });
+
+init();
+</script>
+</body>
+</html>
